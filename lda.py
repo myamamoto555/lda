@@ -16,7 +16,10 @@ class LDA("object"):
 
         self.z_dn = []
 
-        
+        self.w_dn = []
+
+        for d in docs:
+            
 
     def learning(self):
         for i, d in enumerate(self.docs):
