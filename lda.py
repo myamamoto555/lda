@@ -1,5 +1,6 @@
 # coding:utf-8
 import numpy as np
+import os
 
 class LDA:
     def __init__(self, alpha, beta, D, K, V, docs):
@@ -41,18 +42,38 @@ class LDA:
                 p = np.array(p)
                 p /= p.sum()
                 
-                self.z_dn[i][j] = np.random.multinomial(1, p).argmax()
+                self.z_dn[i][j] = int(np.random.multinomial(1, p).argmax())
+                print self.z_dn[i][j]
                 
                 self.n_dk[i][self.z_dn[i][j]] += 1
                 self.n_kv[self.z_dn[i][j]][self.w_n.index(n)] += 1
                 self.n_k[self.z_dn[i][j]] += 1
 
 
+def data_prepare(documents_directory_path):
+    fis = os.listdir(documents_directory_path)
+    docs = []
+    vocs = []
+    for fi in fis:
+        with open(documents_directory_path+fi) as f:
+            doc_ws = []
+            for l in f:
+                l = l.split("\n")[0]
+                l = l.split("\r")[0]
+                ws = l.split()
+                for w in ws:
+                    doc_ws.append(w)
+                    if not w in vocs:
+                        vocs.append(w)
+            docs.append(doc_ws)
+    return docs, vocs
 
 
 if __name__ == '__main__':
-    documents = [["a", "a", "b"], ["c", "c", "b"]]
-    lda = LDA(0.5, 0.5, len(documents), 2, 3, documents)
+    K = 10
+    docs, vocs = data_prepare("./docs/")
+    
+    lda = LDA(0.5, 0.5, len(docs), K, len(vocs), docs)
     for i in range(10):
         lda.learning(i)
 
