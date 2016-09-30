@@ -1,24 +1,24 @@
 # coding:utf-8
 import numpy as np
-import os
+import preprocessing
 
 class LDA:
-    def __init__(self, alpha, beta, D, K, V, docs):
+    def __init__(self, alpha, beta, K, data):
         self.alpha = alpha
         self.beta = beta
-        self.D = D
+        self.D = len(data.docs)
         self.K = K
-        self.V = V
-        self.docs = docs
+        self.V = len(data.vocs)
+        self.docs = data.docs
 
-        self.n_k = np.zeros(K)
-        self.n_dk = np.zeros((D, K))
-        self.n_kv = np.zeros((K, V))
+        self.n_k = np.zeros(self.K)
+        self.n_dk = np.zeros((self.D, self.K))
+        self.n_kv = np.zeros((self.K, self.V))
 
         self.z_dn = []
 
         self.w_n = []  # 単語のindex
-        for d in docs:
+        for d in self.docs:
             self.z_dn.append(np.zeros(len(d)))
             for n in d:
                 if not n in self.w_n:
@@ -50,30 +50,11 @@ class LDA:
                 self.n_k[self.z_dn[i][j]] += 1
 
 
-def data_prepare(documents_directory_path):
-    fis = os.listdir(documents_directory_path)
-    docs = []
-    vocs = []
-    for fi in fis:
-        with open(documents_directory_path+fi) as f:
-            doc_ws = []
-            for l in f:
-                l = l.split("\n")[0]
-                l = l.split("\r")[0]
-                ws = l.split()
-                for w in ws:
-                    doc_ws.append(w)
-                    if not w in vocs:
-                        vocs.append(w)
-            docs.append(doc_ws)
-    return docs, vocs
-
-
 if __name__ == '__main__':
     K = 10
-    docs, vocs = data_prepare("./docs/")
+    data = preprocessing.DATA("./docs/")
     
-    lda = LDA(0.5, 0.5, len(docs), K, len(vocs), docs)
+    lda = LDA(0.5, 0.5, K, data)
     for i in range(10):
         lda.learning(i)
 
