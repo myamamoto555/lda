@@ -53,27 +53,22 @@ class LDA:
 		self.n_kv[new_z, n] += 1
 		self.n_k[new_z] += 1
     
-    def documents_topic_dist(self, d, k):
-        theta_dk = (self.n_dk[d][k] + self.alpha) \
-                   / (len(self.docs[d]) + self.alpha * self.K)
-        
-        return theta_dk
-
-    def topic_words_dist(self, k, v):
-        phi_dk = (self.n_kv[k][v] + self.beta) \
-                 / (self.n_k[k] + self.beta * self.V)
-        return phi_dk
+    def topic_word_dist(self):
+	return self.n_kv / self.n_k[:, np.newaxis]
     
-    def perplexity(self):
-        perplexity = 0
-        for i, d in enumerate(self.docs):
-            for j, n in enumerate(d):
-                for k in range(self.K):
-                    perplexity += self.documents_topic_dist(i, k) \
-                                  * self.topic_words_dist(k, self.w_n.index(n))
-        return perplexity
-            
-
+    def perplexity(self, docs=None):
+	if docs == None:
+	    docs = self.docs
+	phi = self.topic_word_dist()
+	log_per = 0
+	N = 0
+	Kalpha = self.K * self.alpha
+	for i, doc in enumerate(docs):
+	    theta = self.n_dk[i] / (len(self.docs[i]) + Kalpha)
+	    for n in doc:
+		log_per -= np.log(np.inner(phi[:, n], theta))
+	    N += len(doc)
+        return np.exp(log_per / N)
 
 if __name__ == '__main__':
     K = 100
@@ -84,10 +79,4 @@ if __name__ == '__main__':
     lda = LDA(0.5, 0.5, K, data)
     for i in range(1000):
         lda.learning()
-        #print lda.perplexity()
-	print i
-
-    #print lda.n_dk
-    #print lda.n_kv
-    #print lda.n_k
-    #print lda.z_dn
+        print lda.perplexity()
