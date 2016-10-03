@@ -11,42 +11,47 @@ class LDA:
         self.V = len(data.vocs)
         self.docs = data.docs
 
-        self.n_k = np.zeros(self.K)
-        self.n_dk = np.zeros((self.D, self.K))
-        self.n_kv = np.zeros((self.K, self.V))
+        self.n_k = np.zeros(self.K) + self.V * self.beta  # word count of topic k
+        self.n_dk = np.zeros((self.D, self.K)) + self.alpha  # word count of document d and topic k
+        self.n_kv = np.zeros((self.K, self.V)) + self.beta  # word count of topic k and vocabulary v
 
-        self.z_dn = []
+        self.z_dn = []  # topic of document d and word n
+	
+	self.init_topic_assign()
 
-        self.w_n = []  # 単語のindex
-        for d in self.docs:
-            self.z_dn.append(np.zeros(len(d)))
-            for n in d:
-                if not n in self.w_n:
-                    self.w_n.append(n)
-            
-
-    def learning(self, epoc):
+    def init_topic_assign(self):
         for i, d in enumerate(self.docs):
-            z_d=[]
+            z_n = []
+            for n in d:
+                p_z = self.n_kv[:, n] * self.n_dk[i] / self.n_k
+		z = np.random.multinomial(1, p_z / p_z.sum()).argmax()
+		
+		z_n.append(z)
+		self.n_k[z] += 1
+            	self.n_dk[i, z] += 1
+		self.n_kv[z, n] += 1
+	    self.z_dn.append(np.array(z_n))
+
+    def learning(self):
+        for i, d in enumerate(self.docs):
+            z_n = self.z_dn[i]
+	    n_dk = self.n_dk[i]
             for j, n in enumerate(d):
-                if epoc > 0:
-                    self.n_dk[i][self.z_dn[i][j]] -= 1
-                    self.n_kv[self.z_dn[i][j]][self.w_n.index(n)] -= 1
-                    self.n_k[self.z_dn[i][j]] -= 1
-                p = []
-                for k in range(self.K):
-                    prob = float(self.n_dk[i][k]+self.alpha) \
-                           * (self.n_kv[k][self.w_n.index(n)]+self.beta) \
-                           / (self.n_k[k] + self.beta * self.V)
-                    p.append(prob)
-                p = np.array(p)
-                p /= p.sum()
+		# discount
+		z = z_n[j]
+		n_dk[z] -= 1
+		self.n_kv[z, n] -= 1
+		self.n_k[z] -= 1
                 
-                self.z_dn[i][j] = int(np.random.multinomial(1, p).argmax())
+		# sampling
+		p_z = self.n_kv[:, n] * n_dk / self.n_k
+		new_z = np.random.multinomial(1, p_z / p_z.sum()).argmax()
                 
-                self.n_dk[i][self.z_dn[i][j]] += 1
-                self.n_kv[self.z_dn[i][j]][self.w_n.index(n)] += 1
-                self.n_k[self.z_dn[i][j]] += 1
+		# update
+                z_n[j] = new_z
+		n_dk[new_z] += 1
+		self.n_kv[new_z, n] += 1
+		self.n_k[new_z] += 1
     
     def documents_topic_dist(self, d, k):
         theta_dk = (self.n_dk[d][k] + self.alpha) \
@@ -73,13 +78,14 @@ class LDA:
 if __name__ == '__main__':
     K = 100
     print "preprocessing"
-    data = preprocessing.DATA("./dosument/")
+    data = preprocessing.DATA("./docs/")
     print "preprocessing done"
 
     lda = LDA(0.5, 0.5, K, data)
     for i in range(1000):
-        lda.learning(i)
-        print lda.perplexity()
+        lda.learning()
+        #print lda.perplexity()
+	print i
 
     #print lda.n_dk
     #print lda.n_kv
