@@ -15,7 +15,7 @@ $ python lda.py
 
 # Corpus
 In the `./docs`, there are three documents.
-These documents are patr of 20 Newsgroups.
+These documents are part of 20 Newsgroups.
+
 `http://qwone.com/~jason/20Newsgroups/`
 
-# References
